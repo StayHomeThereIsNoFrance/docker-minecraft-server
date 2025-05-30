@@ -19,7 +19,7 @@ where, in this case, the standard server port 25565, will be exposed on your hos
 
 !!! note
 
-    If you plan on running a server for a longer amount of time it is highly recommended using a management layer such as [Docker Compose](#using-docker-compose) or [Kubernetes](#deployment-templates-and-examples) to allow for incremental reconfiguration and image upgrades.
+    If you plan on running a server for a longer amount of time it is highly recommended using a management layer such as [Docker Compose](#using-docker-compose) or [Kubernetes](misc/deployment/index.md#on-kubernetes) to allow for incremental reconfiguration and image upgrades.
 
 !!! info 
 
@@ -57,6 +57,9 @@ services:
 To apply changes made to the compose file, just run `docker compose up -d` again.
 
 Follow the logs of the container using `docker compose logs -f`, check on the status with `docker compose ps`, and stop the container using `docker compose stop`.
+
+!!! note "Configurator Tool"
+    If you prefer to use an interactive tool to create or edit a Docker Compose file for this image, you can check out [setupmc.com's configurator](https://setupmc.com/java-server/). It provides a form that supports most of the image variables and generates the `compose.yml` file in real time.
 
 !!! note "More Compose Examples"
     There are more [examples located in the Github repo](https://github.com/itzg/docker-minecraft-server/tree/master/examples).

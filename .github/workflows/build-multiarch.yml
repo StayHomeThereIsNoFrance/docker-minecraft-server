@@ -11,6 +11,7 @@ on:
       - "docs/**"
       - "examples/**"
       - "notes/**"
+      - "kustomize/**"
 
 jobs:
   build:
@@ -19,21 +20,29 @@ jobs:
       matrix:
         # NOTE: the "latest" variant is identified in the Docker meta step's 'latest' config
         variant:
-          - java21-graalvm
+          - java24
+          - java24-graalvm
           - java21
           - java21-alpine
+          - java21-graalvm
+          - java21-jdk
           - java17
           - java17-graalvm
-          - java17-jdk
-          - java17-openj9
           - java17-alpine
           - java8
           - java8-graalvm-ce
           - java8-openj9
           - java8-jdk
-          - java8-alpine
-          - java11
         include:
+        # JAVA 24
+          - variant: java24
+            baseImage: eclipse-temurin:24-jre
+            platforms: linux/amd64,linux/arm64
+            mcVersion: latest
+          - variant: java24-graalvm
+            baseImage: container-registry.oracle.com/graalvm/jdk:24-ol8
+            platforms: linux/amd64,linux/arm64
+            mcVersion: latest
         # JAVA 21:
           - variant: java21-graalvm
             baseImage: container-registry.oracle.com/graalvm/jdk:21-ol8
@@ -43,9 +52,13 @@ jobs:
             baseImage: eclipse-temurin:21-jre
             platforms: linux/amd64,linux/arm64
             mcVersion: latest
+          - variant: java21-jdk
+            baseImage: eclipse-temurin:21
+            platforms: linux/amd64,linux/arm64
+            mcVersion: latest
           - variant: java21-alpine
             baseImage: eclipse-temurin:21-jre-alpine
-            platforms: linux/amd64
+            platforms: linux/amd64,linux/arm64
             mcVersion: latest
         # JAVA 17:
           - variant: java17
@@ -57,31 +70,14 @@ jobs:
             baseImage: container-registry.oracle.com/graalvm/jdk:17-ol8
             platforms: linux/amd64,linux/arm64
             mcVersion: 1.20.4
-          - variant: java17-jdk
-            baseImage: eclipse-temurin:17-focal
-            platforms: linux/amd64,linux/arm/v7,linux/arm64
-            mcVersion: 1.20.4
-          - variant: java17-openj9
-            baseImage: ibm-semeru-runtimes:open-17-jre
-            platforms: linux/amd64,linux/arm64
-            mcVersion: 1.20.4
           - variant: java17-alpine
             baseImage: eclipse-temurin:17-jre-alpine
             platforms: linux/amd64
             mcVersion: 1.20.4
-        # JAVA 11:
-          - variant: java11
-            baseImage: adoptopenjdk:11-jre-hotspot
-            platforms: linux/amd64,linux/arm/v7,linux/arm64
-            mcVersion: 1.16.5
         # JAVA 8: NOTE: Unable to go past 8u312 because of Forge dependencies
           - variant: java8
             baseImage: eclipse-temurin:8u312-b07-jre-focal
             platforms: linux/amd64,linux/arm/v7,linux/arm64
-            mcVersion: 1.12.2
-          - variant: java8-alpine
-            baseImage: openjdk:8-jre-alpine3.9
-            platforms: linux/amd64
             mcVersion: 1.12.2
           - variant: java8-graalvm-ce
             baseImage: ghcr.io/graalvm/graalvm-ce:java8
@@ -102,14 +98,14 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout
-        uses: actions/checkout@v4.1.4
+        uses: actions/checkout@v4.2.2
         with:
           # for build-files step
           fetch-depth: 0
 
       - name: Docker meta
         id: meta
-        uses: docker/metadata-action@v5.5.1
+        uses: docker/metadata-action@v5.7.0
         with:
           # NOTE for forks: if your Docker Hub organization doesn't match your Github repo's,
           # then the use of ${{ github.repository_owner }} will need to be replaced.
@@ -117,16 +113,18 @@ jobs:
             ${{ github.repository_owner }}/minecraft-server
             ghcr.io/${{ github.repository_owner }}/minecraft-server
           tags: |
-            # For the "main" variant, it gets the tag as-is, without suffix
-            type=ref,event=tag,enable=${{ matrix.variant == env.MAIN_VARIANT }}
-            # and each variant (including main one) gets the tag with the variant suffix, such as 2023.1.1-java17
-            type=ref,event=tag,suffix=-${{ matrix.variant }}
+            # Apply the variant as a moving tag for most recent commit per variant
+            type=raw,value=${{ matrix.variant }},enable=${{ github.ref_name == github.event.repository.default_branch }}            
+            # For the "main" variant, it gets the tag as-is
+            type=pep440,pattern={{version}},enable=${{ matrix.variant == env.MAIN_VARIANT }}
+            # ...and all variants (including main one) get the tag with the variant suffix, such as 2023.1.1-java17
+            type=pep440,pattern={{version}},suffix=-${{ matrix.variant }}
+            # latest tag gets a moving 'stable' image tag applied to the main variant
+            type=pep440,pattern=stable,enable=${{ matrix.variant == env.MAIN_VARIANT }}
+            # ...and qualified stable for all variants
+            type=pep440,pattern=stable,suffix=-${{ matrix.variant }}
             # for building test/* branch images
             type=ref,event=branch,suffix=-${{ matrix.variant }},enable=${{ github.ref_name != github.event.repository.default_branch }}
-            # latest repo tag gets a moving 'stable' image tag applied to the main variant
-            type=raw,value=stable,enable=${{ github.ref_type == 'tag' && matrix.variant == env.MAIN_VARIANT }}            
-            # apply the variant as a moving tag for most recent commit per variant
-            type=raw,value=${{ matrix.variant }},enable=${{ github.ref_name == github.event.repository.default_branch }}
             # for backward compatibility with users referencing java8-multiarch, this will set an extra label on java8
             type=raw,value=java8-multiarch,enable=${{ matrix.variant == 'java8' && github.ref_name == github.event.repository.default_branch }}
           # NOTE this identifies which variant will be published as "latest", which isn't
@@ -137,13 +135,13 @@ jobs:
             org.opencontainers.image.authors=Geoff Bourne <itzgeoff@gmail.com>
 
       - name: Setup Docker Buildx
-        uses: docker/setup-buildx-action@v3.3.0
+        uses: docker/setup-buildx-action@v3.10.0
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3.0.0
+        uses: docker/setup-qemu-action@v3.6.0
 
       - name: Build for test
-        uses: docker/build-push-action@v5.3.0
+        uses: docker/build-push-action@v6.17.0
         with:
           platforms: linux/amd64
           tags: ${{ env.IMAGE_TO_TEST }}
@@ -166,14 +164,14 @@ jobs:
           tests/test.sh
 
       - name: Login to DockerHub
-        uses: docker/login-action@v3.1.0
+        uses: docker/login-action@v3.4.0
         if: env.HAS_IMAGE_REPO_ACCESS
         with:
           username: ${{ secrets.DOCKER_USER }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Login to GHCR
-        uses: docker/login-action@v3.1.0
+        uses: docker/login-action@v3.4.0
         if: env.HAS_IMAGE_REPO_ACCESS
         with:
           registry: ghcr.io
@@ -181,7 +179,7 @@ jobs:
           password: ${{ github.token }}
 
       - name: Build and push
-        uses: docker/build-push-action@v5.3.0
+        uses: docker/build-push-action@v6.17.0
         if: github.actor == github.repository_owner
         with:
           platforms: ${{ matrix.platforms }}
@@ -205,5 +203,8 @@ jobs:
           build-args: |
             BASE_IMAGE=${{ matrix.baseImage }}
             BUILD_FILES_REV=${{ steps.build-files-rev.outputs.REV }}
+            BUILDTIME=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
+            VERSION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.version'] }}
+            REVISION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.revision'] }}
           cache-from: type=gha,scope=${{ matrix.variant }}
           cache-to: type=gha,mode=max,scope=${{ matrix.variant }}

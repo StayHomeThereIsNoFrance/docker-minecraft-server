@@ -1,6 +1,6 @@
 # Modrinth Modpacks
 
-[Modrinth Modpacks](https://modrinth.com/modpacks) can automatically be installed along with the required mod loader (Forge or Fabric) by setting `MOD_PLATFORM` or `TYPE` to "MODRINTH". Upgrading (and downgrading) takes care of cleaning up old files and upgrading (and downgrading) the mod loader.
+[Modrinth Modpacks](https://modrinth.com/modpacks) can automatically be installed along with the required mod loader (Forge or Fabric) by setting `MODPACK_PLATFORM`, `MOD_PLATFORM` or `TYPE` to "MODRINTH". Upgrading (and downgrading) takes care of cleaning up old files and upgrading (and downgrading) the mod loader.
 
 ## Modpack project
 
@@ -72,6 +72,10 @@ To force include client mods, set `MODRINTH_FORCE_INCLUDE_FILES` to a comma or n
       MODRINTH_FORCE_INCLUDE_FILES: |
         yet-another-config-lib
     ```
+
+## Default exclude/includes
+
+The image comes with a default set of exclude/includes, maintained [in the repo files area](https://github.com/itzg/docker-minecraft-server/blob/master/files/modrinth-exclude-include.json) and uses the same [JSON schema](https://github.com/itzg/mc-image-helper?tab=readme-ov-file#excludeinclude-file-schema) as Auto CurseForge. Those defaults can be disabled by setting the env var `MODRINTH_DEFAULT_EXCLUDE_INCLUDES` to an empty string.
 
 ## Excluding Overrides Files
 

@@ -1,6 +1,6 @@
 # Auto CurseForge
 
-To manage a CurseForge modpack automatically with upgrade support, pinned or latest version tracking, set `MOD_PLATFORM` or `TYPE` to "AUTO_CURSEFORGE". The appropriate mod loader (Forge / Fabric) version will be automatically installed as declared by the modpack. This mode will also take care of cleaning up unused files installed by previous versions of the modpack, but world data is never auto-removed.
+To manage a CurseForge modpack automatically with upgrade support, pinned or latest version tracking, set `MODPACK_PLATFORM`, `MOD_PLATFORM` or `TYPE` to "AUTO_CURSEFORGE". The appropriate mod loader (Forge / Fabric) version will be automatically installed as declared by the modpack. This mode will also take care of cleaning up unused files installed by previous versions of the modpack, but world data is never auto-removed.
 
 ## API Key
 
@@ -56,7 +56,9 @@ For example:
 -e TYPE=AUTO_CURSEFORGE -e CF_SLUG=all-the-mods-8
 ```
 
-The latest file will be located and used by default, but if a specific version is desired you can use one of the following options. With any of these options **do not select a server file** -- they lack the required manifest and defeat the ability to consistently automate startup.
+### Pinning modpack and mod loader versions
+
+The latest modpack file and its associated mod loader will be located and installed by default on startup (including automatic upgrading of both on subsequent startups, if a later version is found on CurseForge). If a specific version is desired instead, you can use one of the following options. With any of these options **do not select a server file** -- they lack the required manifest and defeat the ability to consistently automate startup.
 
 - Use `CF_PAGE_URL`, but include the full URL to a specific file
 - Set `CF_FILE_ID` to the numerical file ID
@@ -81,6 +83,8 @@ The following examples all refer to version 1.0.7 of ATM8:
   CF_SLUG: all-the-mods-8
   CF_FILENAME_MATCHER: 1.0.7
 ```
+
+Pinning modpack version also pins the mod loader (to the version specified by the modpack). Mod loader version cannot be pinned independently of the modpack.
 
 ## Manual Downloads
 
@@ -116,7 +120,7 @@ If you wish to use an unpublished modpack zip, set the container path to the fil
         image: itzg/minecraft-server
         environment:
           EULA: true
-          MOD_PLATFORM: AUTO_CURSEFORGE
+          MODPACK_PLATFORM: AUTO_CURSEFORGE
           # allocate from https://console.curseforge.com/ and set in .env file
           CF_API_KEY: ${CF_API_KEY}
           CF_MODPACK_MANIFEST: /manifests/manifest.json
@@ -163,6 +167,11 @@ If you wish to use an unpublished modpack zip, set the container path to the fil
 Quite often there are mods that need to be excluded, such as ones that did not properly declare as a client mod via the file's game versions. Similarly, there are some mods that are incorrectly tagged as client only. The following describes two options to exclude/include mods:
 
 Mods can be excluded by passing a comma or space delimited list of **project** slugs or IDs via `CF_EXCLUDE_MODS`. Similarly, there are some mods that are incorrectly tagged as client only. For those, pass the **project** slugs or IDs via `CF_FORCE_INCLUDE_MODS`. These lists will be combined with the content of the exclude/include file, if given.
+
+!!! note
+    `CF_FORCE_INCLUDE_MODS` will not download additional mods.
+    
+    For additional mods, refer to [the `CURSEFORGE_FILES` variable](../../mods-and-plugins/curseforge-files.md).
 
 A mod's project ID can be obtained from the right hand side of the project page:
 ![cf-project-id](../../img/cf-project-id.png)

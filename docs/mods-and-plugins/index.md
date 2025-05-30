@@ -1,10 +1,10 @@
 # Working with mods and plugins
 
-## Mod platforms
+## Modpack platforms
 
-By far the easiest way to work with mod and plugins, especially large numbers of them, is to utilize modpacks with [one of the supported mod platforms](../types-and-platforms/index.md).
+By far the easiest way to work with mod and plugins, especially large numbers of them, is to utilize modpacks with [one of the supported modpack platforms](../types-and-platforms/index.md).
 
-The following are some supported mod platforms:
+The following are some supported modpack platforms:
 
 - [Modrinth](../types-and-platforms/mod-platforms/modrinth-modpacks.md) 
 - [CurseForge](../types-and-platforms/mod-platforms/auto-curseforge.md)
@@ -16,14 +16,16 @@ On the left, there are sections describing some download automation options.
 
 ## Mods vs Plugins
 
-The terms "mods" and "plugins" can be quite confusing. Generally, the rule of thumb is that "mods" are used by the types that run client side to modify rendering, add new blocks, and add behaviors server, such as [Forge](../types-and-platforms/server-types/forge.md) and [Fabric](../types-and-platforms/server-types/fabric.md). "Plugins" are used by the types that **only run on servers** to add behaviors, commands, etc such as [Paper](../types-and-platforms/server-types/paper.md) (which derives from [Bukkit/Spigot](../types-and-platforms/server-types/bukkit-spigot.md)). There are also some types that are [hybrids](../types-and-platforms/server-types/hybrids.md), such as Magma, that use both "mods" and "plugins"
+The terms "mods" and "plugins" can be quite confusing. Generally, the rule of thumb is that "mods" are used by the types that run client side to modify rendering, add new blocks, and add behaviors server, such as [Forge](../types-and-platforms/server-types/forge.md) and [Fabric](../types-and-platforms/server-types/fabric.md). "Plugins" are used by the types that **only run on servers** to add behaviors, commands, etc such as [Paper](../types-and-platforms/server-types/paper.md) (which derives from [Bukkit/Spigot](../types-and-platforms/server-types/bukkit-spigot.md)). There are also some types that are [hybrids](../types-and-platforms/server-types/hybrids.md), such as Magma, that use both "mods" and "plugins".
+
+Typically, mods needs to be installed in both the client and server; however, there are some cases when only the server needs a mod. Plugins only need to be installed in the server and are never needed in the client.
 
 ## Optional plugins, mods, and config attach points
 
 There are optional volume paths that can be attached to supply content to be copied into the data area:
 
 `/plugins`
-: content in this directory is synchronized into `/data/plugins` for server types that use plugins, [as described above](#mods-vs-plugins). For special cases, the source can be changed by setting `COPY_PLUGINS_SRC` and destination by setting `COPY_PLUGINS_DEST`.
+: content in this directory is synchronized into `/data/plugins` for server types that use plugins, [as described above](#mods-vs-plugins). For special cases, the source can be changed by setting `COPY_PLUGINS_SRC` and destination by setting `COPY_PLUGINS_DEST`. If using a mod-based loader, such as Forge or Fabric, but a hybrid mod like [Cardboard](https://modrinth.com/mod/cardboard), then set `USES_PLUGINS` to have the automation utilize `/plugins` mount.
 
 `/mods`
 : content in this directory is synchronized into `/data/mods` for server types that use mods, [as described above](#mods-vs-plugins). For special cases, the source can be changed by setting `COPY_MODS_SRC` and destination by setting `COPY_MODS_DEST`.
@@ -41,8 +43,28 @@ For example: `-e REMOVE_OLD_MODS=TRUE -e REMOVE_OLD_MODS_INCLUDE="*.jar" -e REMO
 
 These paths work well if you want to have a common set of modules in a separate location, but still have multiple worlds with different server requirements in either persistent volumes or a downloadable archive.
 
-!!! information ""
-    For more flexibility with mods/plugins preparation, you can declare other directories, files, and URLs to use in [the `MODS` / `PLUGINS` variables](#modsplugins-list).
+!!! information "Multiple source directories"
+
+    `COPY_PLUGINS_SRC`, `COPY_MODS_SRC`, `COPY_CONFIG_SRC` can each be set to a comma or newline delimited list of container directories to reference.
+
+    For example, in a compose file:
+    
+    ```yaml
+        environment:
+          # ...EULA, etc
+          TYPE: PAPER
+          # matches up to volumes declared below
+          COPY_PLUGINS_SRC: /plugins-common,/plugins-local
+        volumes:
+          - mc-data:/data
+          # For example, reference a shared directory used by several projects
+          - ../plugins-common:/plugins-common:ro
+          # and add plugins unique to this project
+          - ./plugins:/plugins-local:ro
+    ```
+
+    Alternatively, you can declare other directories along with files and URLs to use in [the `MODS` / `PLUGINS` variables](#modsplugins-list).
+
 
 
 ## Zip file modpack
@@ -76,11 +98,26 @@ would expand to `https://cdn.example.org/configs-v9.0.1.zip,https://cdn.example.
 
 If applying large generic packs, the update can be time-consuming. To skip the update set `SKIP_GENERIC_PACK_UPDATE_CHECK` to "true". Conversely, the generic pack(s) can be forced to be applied by setting `FORCE_GENERIC_PACK_UPDATE` to "true".
 
-The most time-consuming portion of the generic pack update is generating and comparing the SHA1 checksum. To skip the checksum generation, set `SKIP_GENERIC_PACK_CHECKSUM` to "true.
+The most time-consuming portion of the generic pack update is generating and comparing the SHA1 checksum. To skip the checksum generation, set `SKIP_GENERIC_PACK_CHECKSUM` to "true".
+
+To disable specific mods, which can be useful for conflicts between multiple generic packs, you can use the `GENERIC_PACKS_DISABLE_MODS` variable to specify mods to disable.
+
+Disabling mods with docker run:
+```shell
+docker run -d -e GENERIC_PACKS_DISABLE_MODS="mod1.jar mod2.jar" ...
+```
+
+Disabling mods within docker compose files:
+```yaml
+      GENERIC_PACKS_DISABLE_MODS: |
+        mod1.jar
+        mod2.jar
+```
 
 ## Mods/plugins list
 
 You may also download or copy over individual mods/plugins using the `MODS` or `PLUGINS` environment variables. Both are a comma or newline delimited list of
+
 - URL of a jar file
 - container path to a jar file
 - container path to a directory containing jar files
@@ -117,7 +154,7 @@ https://edge.forgecdn.net/files/2871/647/ToastControl-1.15.2-3.0.1.jar
 
     Blank lines and lines that start with a `#` will be ignored
 
-    [This compose file](https://github.com/itzg/docker-minecraft-server/blob/master/examples/docker-compose-mods-file.yml) shows another example of using this feature.
+    [This compose file](https://github.com/itzg/docker-minecraft-server/blob/master/examples/mods-file/docker-compose.yml) shows another example of using this feature.
 
 ## Remove old mods/plugins
 

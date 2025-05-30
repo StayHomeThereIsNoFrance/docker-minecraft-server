@@ -1,10 +1,50 @@
-Enable Paper server mode by adding a `-e TYPE=PAPER` to your command-line.
+A [PaperMC server](https://papermc.io/) can be automatically downloaded, upgraded, and run by setting the environment variable TYPE to "PAPER".
 
-By default, the container will run the latest build of [Paper server](https://papermc.io/downloads) but you can also choose to run a specific build with `-e PAPERBUILD=205`.
+By default, the container will find and download the latest build for the `VERSION` chosen. If `VERSION` is not specified, then the latest Minecraft version released by PaperMC is selected. Along with a specific `VERSION`, a specific Paper build can be selected by setting the environment variable `PAPER_BUILD`. 
 
-    docker run -d -v /path/on/host:/data \
-        -e TYPE=PAPER \
-        -p 25565:25565 -e EULA=TRUE --name mc itzg/minecraft-server
+To allow for the selection of experimental builds, set `PAPER_CHANNEL` to "experimental", otherwise only release/default channel builds are selected.
+
+!!! example
+
+    Using `docker run` command line
+    
+    ```
+    docker run ... -e TYPE=PAPER ... 
+    
+    docker run ... -e TYPE=PAPER -e VERSION=1.20.6 ... 
+    
+    docker run ... -e TYPE=PAPER -e VERSION=1.20.6 -e PAPER_BUILD=140 ... 
+    
+    docker run ... -e TYPE=PAPER -e PAPER_CHANNEL=experimental ... 
+    ```
+    
+    Using a compose file:
+    
+    ```yaml
+    environment:
+      TYPE: PAPER
+    ```
+    
+    ```yaml
+    environment:
+      TYPE: PAPER
+      VERSION: 1.20.6
+      PAPER_BUILD: 140
+    ```
+    
+    ```yaml
+    environment:
+      TYPE: PAPER
+      PAPER_CHANNEL: experimental
+    ```
+
+!!! tip
+
+    If you see the following error, it likely means you need to set the env var `PAPER_CHANNEL` to "experimental"
+    
+    ```
+    No build found for version 1.21 with channel 'default'
+    ```
 
 If you are hosting your own copy of Paper you can override the download URL with `PAPER_DOWNLOAD_URL=<url>`.
 
@@ -47,13 +87,19 @@ Extra variables:
 
 ### Folia
 
-Enable Folia server mode by adding a `-e TYPE=FOLIA` to your command-line.
+A [Folia server](https://papermc.io/software/folia) can be used by setting the environment variable `TYPE` to "FOLIA".
 
-By default, the container will run the latest build of [Folia server](https://papermc.io/downloads), but you can also choose to run a specific build with `-e FOLIABUILD=26`.
+By default, the container will run the latest experimental build of [Folia server](https://papermc.io/downloads), but you can also choose to run a specific build with `-e FOLIABUILD=26`. The release channel can be changed with the variable `FOLIA_CHANNEL`; however, only experimental builds are available at this time.
 
+!!! example
+
+    Using `docker run`
+    
+    ```
     docker run -d -v /path/on/host:/data \
         -e TYPE=FOLIA \
         -p 25565:25565 -e EULA=TRUE --name mc itzg/minecraft-server
+    ```
 
 If you are hosting your own copy of Folia you can override the download URL with `FOLIA_DOWNLOAD_URL=<url>`.
 

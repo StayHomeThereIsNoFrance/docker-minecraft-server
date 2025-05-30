@@ -4,7 +4,9 @@ If you prefer to manually manage the `server.properties` file, set `OVERRIDE_SER
 
 !!! note
   
-    To clear a server property, set the variable to an empty string, such as `-e RESOURCE_PACK=""`. An unset variable is ignored and the existing `server.property` is left unchanged.
+    To clear a server property, set the variable to an empty string, such as `-e RESOURCE_PACK=""`. An unset variable is ignored and the existing server property is left unchanged.
+
+To see what `server.properties` will get used by the server, set the environment variable `DUMP_SERVER_PROPERTIES` to "true" and the contents of `server.properties` will get output before the server starts.
 
 ## Placeholders
 
@@ -62,9 +64,25 @@ The section symbol (§) and other unicode characters are automatically converted
     
     ![](../img/motd-example.png)
 
-To produce a multi-line MOTD, embed a newline character as `\n` in the string, such as
+To produce a multi-line MOTD, embed a newline character as `\n` in the string, such as the following example.
 
+!!! example "Multi-line MOTD"
+
+    With `docker run`
+    
+    ```
     -e MOTD="Line one\nLine two"
+    ```
+    
+    or within a compose file
+    
+    ```yaml
+          MOTD: |
+            line one
+            line two
+    # or
+    #      MOTD: "line one\nline two"
+    ```
 
 !!! tip
 
@@ -110,7 +128,7 @@ When either is set, [whitelisting of connecting users](https://minecraft.wiki/w/
 
 To change the behavior when the whitelist file already exists, set the variable `EXISTING_WHITELIST_FILE` to one of the following options:
 
-`SKIP` (default)
+`SKIP`
 : Skip processing of the whitelist file when one is already present. This is the same as setting the legacy variable `OVERRIDE_WHITELIST` to "false".
 
 `SYNCHRONIZE`
@@ -119,7 +137,7 @@ To change the behavior when the whitelist file already exists, set the variable 
 `MERGE`
 : Merge the list of users from `WHITELIST` into the existing file. `WHITELIST_FILE` cannot be used with this option.
 
-`SYNC_FILE_MERGE_LIST`
+`SYNC_FILE_MERGE_LIST` (default)
 : When `WHITELIST_FILE` is provided it will overwrite an existing whitelist file. Also, if `WHITELIST` is provided, then those users will be merged into the newly copied file.
 
 !!! note 
@@ -153,7 +171,7 @@ Similar to the whitelist, users can be provisioned as operators (aka administrat
 
 To change the behavior when the ops file already exists, set the variable `EXISTING_OPS_FILE` to one of the following options:
 
-`SKIP` (default)
+`SKIP`
 : Skip processing of the ops file when one is already present. This is the same as setting the legacy variable `OVERRIDE_OPS` to "false".
 
 `SYNCHRONIZE`
@@ -162,7 +180,7 @@ To change the behavior when the ops file already exists, set the variable `EXIST
 `MERGE`
 : Merge the list of users from `OPS` into the existing file. `OPS_FILE` cannot be used with this option.
 
-`SYNC_FILE_MERGE_LIST`
+`SYNC_FILE_MERGE_LIST` (default)
 : When `OPS_FILE` is provided it will overwrite an existing ops file. Also, if `OPS` is provided, then those users will be merged into the newly copied file.
 
 !!! note
@@ -179,14 +197,34 @@ New to [22W42A](https://www.minecraft.net/en-us/article/minecraft-snapshot-22w42
 
 ### Server icon
 
-A server icon can be configured using the `ICON` variable. The image will be automatically
-downloaded, scaled, and converted from any other image format:
+A server icon can be configured by setting the `ICON` variable to a URL to download or a container path. The image will be automatically downloaded (if a URL), scaled, and converted from any other image format:
 
+!!! example
+
+    Using `docker run`:
+    
+    ```
     docker run -d -e ICON=http://..../some/image.png ...
+    ```
+    
+    In compose file:
+    
+    ```yaml
+    environment:
+      ICON: http://..../some/image.png
+    ```
+    
+    Using a file from host filesystem:
+    
+    ```yaml
+    environment:
+      ICON: /icon.png
+      OVERRIDE_ICON: true
+    volumes:
+      ./icon.png:/icon.png
+    ```
 
-The server icon which has been set doesn't get overridden by default. It can be changed and overridden by setting `OVERRIDE_ICON` to `TRUE`.
-
-    docker run -d -e ICON=http://..../some/other/image.png -e OVERRIDE_ICON=TRUE...
+By default an existing `server-icon.png` file will not be replaced, that can be changed by setting `OVERRIDE_ICON` to "true".
 
 ### RCON
 
@@ -477,4 +515,11 @@ When using `docker run` from a bash shell, the entries must be quoted with the `
 | SIMULATION_DISTANCE               | simulation-distance               |
 | SYNC_CHUNK_WRITES                 | sync-chunk-writes                 |
 | USE_NATIVE_TRANSPORT              | use-native-transport              |
-
+| HIDE_ONLINE_PLAYERS               | hide-online-players               |
+| RESOURCE_PACK_ID                  | resource-pack-id                  |
+| RESOURCE_PACK_PROMPT              | resource-pack-prompt              |
+| MAX_CHAINED_NEIGHBOR_UPDATES      | max-chained-neighbor-updates      |
+| LOG_IPS                           | log-ips                           |
+| REGION_FILE_COMPRESSION           | region-file-compression           |   
+| BUG_REPORT_LINK                   | bug-report-link                   |
+| PAUSE_WHEN_EMPTY_SECONDS          | pause-when-empty-seconds          |

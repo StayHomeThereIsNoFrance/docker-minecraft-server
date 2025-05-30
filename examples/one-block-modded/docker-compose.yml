@@ -5,8 +5,11 @@ services:
       - "25565:25565"
     environment:
       EULA: "true"
-      MOD_PLATFORM: AUTO_CURSEFORGE
-      # CF_API_KEY=... must be set in .env file or as environment variable
+      MODPACK_PLATFORM: AUTO_CURSEFORGE
+      # Allocate API key from https://console.curseforge.com/
+      # and set in .env file making sure to double up dollar signs, such as
+      # CF_API_KEY=$$2a$$10$$....
+      # Refer to https://docker-minecraft-server.readthedocs.io/en/latest/types-and-platforms/mod-platforms/auto-curseforge/#api-key
       CF_API_KEY: ${CF_API_KEY}
       CF_SLUG: one-block-modded
       # Modpack client zip must be manually downloaded from
