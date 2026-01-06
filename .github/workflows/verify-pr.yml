@@ -1,8 +1,8 @@
 name: Verify PR
 on:
   pull_request:
-    branches: [ master ]
-    types: [assigned, opened, synchronize, labeled]
+    branches:
+      - master
     paths-ignore:
       - "*.md"
       - "docs/**"
@@ -11,6 +11,7 @@ on:
       - "kustomize/**"
       - "docker-compose*.yml"
       - "mkdocs.yml"
+      - "images.json"
 
 jobs:
   build:
@@ -18,14 +19,14 @@ jobs:
       fail-fast: false
       matrix:
         variant:
-          - java21
+          - java25
           - java21-alpine
           - java17
           - java8
         include:
-        # JAVA 21:
-          - variant: java21
-            baseImage: eclipse-temurin:21-jre
+        # JAVA 21/25:
+          - variant: java25
+            baseImage: eclipse-temurin:25-jre
             platforms: linux/amd64,linux/arm64
             mcVersion: latest
           - variant: java21-alpine
@@ -42,31 +43,34 @@ jobs:
             baseImage: eclipse-temurin:8u312-b07-jre-focal
             platforms: linux/amd64
             mcVersion: 1.12.2
+            # Pin version for Java 8
+            mcHelperVersion: 1.51.1
     env:
       IMAGE_TO_TEST: ${{ github.repository_owner }}/minecraft-server:test-${{ matrix.variant }}-${{ github.run_id }}
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v6.0.1
         with:
           # for build-files step
           fetch-depth: 0
 
       - name: Setup Docker Buildx
-        uses: docker/setup-buildx-action@v3.10.0
+        uses: docker/setup-buildx-action@v3.12.0
 
       - name: Confirm multi-arch build
-        uses: docker/build-push-action@v6.17.0
+        uses: docker/build-push-action@v6.18.0
         with:
           platforms: ${{ matrix.platforms }}
           # ensure latest base image is used
           pull: true
           build-args: |
             BASE_IMAGE=${{ matrix.baseImage }}
+            ${{ matrix.mcHelperVersion && format('MC_HELPER_VERSION={0}', matrix.mcHelperVersion) }}
           cache-from: type=gha,scope=${{ matrix.variant }}
 
       - name: Build for test
-        uses: docker/build-push-action@v6.17.0
+        uses: docker/build-push-action@v6.18.0
         with:
           # Only build single platform since loading multi-arch image into daemon fails with
           # "docker exporter does not currently support exporting manifest lists"
@@ -79,6 +83,7 @@ jobs:
           push: false
           build-args: |
             BASE_IMAGE=${{ matrix.baseImage }}
+            ${{ matrix.mcHelperVersion && format('MC_HELPER_VERSION={0}', matrix.mcHelperVersion) }}
           cache-from: type=gha,scope=${{ matrix.variant }}
 
       - name: Run tests
